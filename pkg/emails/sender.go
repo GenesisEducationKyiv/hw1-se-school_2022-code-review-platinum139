@@ -24,10 +24,10 @@ func (s Service) SendEmail(receiverEmail, subject, text string) error {
 }
 
 func NewEmailService(cfg *config.AppConfig) *Service {
-	dialer := mail.NewDialer(cfg.SmtpHost, cfg.SmtpPort, cfg.SmtpUsername, cfg.SmtpPassword)
+	dialer := mail.NewDialer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword)
 
 	return &Service{
-		senderEmail: cfg.SmtpUsername,
+		senderEmail: cfg.SMTPUsername,
 		dialer:      dialer,
 	}
 }

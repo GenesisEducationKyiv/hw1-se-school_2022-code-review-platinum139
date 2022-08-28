@@ -4,6 +4,7 @@ import (
 	"bitcoin-service/config"
 	"bitcoin-service/internal/subscribers"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"log"
@@ -25,7 +26,7 @@ func (s Server) RegisterRoutes() {
 
 func (s Server) Run() {
 	addr := fmt.Sprintf("%s:%s", s.config.ServerHost, s.config.ServerPort)
-	if err := s.echoServer.Start(addr); err != nil && err != http.ErrServerClosed {
+	if err := s.echoServer.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.Print("Server stopped with error:", err)
 	}
 }

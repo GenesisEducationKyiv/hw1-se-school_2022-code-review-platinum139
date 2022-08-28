@@ -7,8 +7,10 @@ import (
 	"strconv"
 )
 
+const baseURL = "https://api.coingate.com/v2/rates/merchant"
+
 func GetCurrencyRate(from string, to string) (float64, error) {
-	url := fmt.Sprintf("https://api.coingate.com/v2/rates/merchant/%s/%s", from, to)
+	url := fmt.Sprintf("%s/%s/%s", baseURL, from, to)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -23,7 +25,8 @@ func GetCurrencyRate(from string, to string) (float64, error) {
 
 	bodyString := string(bodyBytes)
 
-	rate, err := strconv.ParseFloat(bodyString, 64)
+	bitSize := 64
+	rate, err := strconv.ParseFloat(bodyString, bitSize)
 	if err != nil {
 		return 0, err
 	}

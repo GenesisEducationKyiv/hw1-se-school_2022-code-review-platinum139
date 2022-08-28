@@ -29,21 +29,21 @@ func main() {
 	server := api.NewServer(logger, appConfig, service)
 	server.RegisterRoutes()
 
-	var wg sync.WaitGroup
+	var waitGroup sync.WaitGroup
 
-	wg.Add(1)
+	waitGroup.Add(1)
 	go func() {
-		defer wg.Done()
+		defer waitGroup.Done()
 		server.Run()
 	}()
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	wg.Add(1)
+	waitGroup.Add(1)
 	go func() {
 		<-signals
-		defer wg.Done()
+		defer waitGroup.Done()
 
 		if err := server.Shutdown(context.Background()); err != nil {
 			log.Fatalf("Server stopped with error: %s", err)
@@ -51,5 +51,5 @@ func main() {
 		log.Println("Server stopped gracefully")
 	}()
 
-	wg.Wait()
+	waitGroup.Wait()
 }

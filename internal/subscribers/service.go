@@ -46,8 +46,7 @@ func (s Service) SendEmails() error {
 
 		err := s.mailService.SendEmail(subscriber, "BTC to UAH rate", message)
 		if err != nil {
-			s.log.Print(fmt.Sprintf(
-				"Unable to send mails via mail service for %s: %s", subscriber, err))
+			s.log.Printf("Unable to send mails via mail service for %s: %s", subscriber, err)
 			failedEmails = append(failedEmails, subscriber)
 		}
 	}

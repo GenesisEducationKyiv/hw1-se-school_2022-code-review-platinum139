@@ -18,7 +18,7 @@ type Subscriber struct {
 	Email string `form:"email"`
 }
 
-func (s Server) GetRate(c echo.Context) error {
+func (s Server) GetRate(context echo.Context) error {
 	rate, err := rates.GetCurrencyRate(btc, uah)
 	if err != nil {
 		s.logger.Print("Unable to get currency rate:", err)
@@ -26,12 +26,12 @@ func (s Server) GetRate(c echo.Context) error {
 			"error": "invalid status value",
 		})
 	}
-	return c.JSON(http.StatusOK, rate)
+	return context.JSON(http.StatusOK, rate)
 }
 
-func (s Server) Subscribe(c echo.Context) error {
+func (s Server) Subscribe(context echo.Context) error {
 	subscriber := new(Subscriber)
-	if err := c.Bind(subscriber); err != nil {
+	if err := context.Bind(subscriber); err != nil {
 		s.logger.Print("Unable to get form data from request:", err)
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{
 			"error": "bad request",
@@ -58,19 +58,18 @@ func (s Server) Subscribe(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, "")
+	return context.JSON(http.StatusOK, "")
 }
 
-func (s Server) SendEmails(c echo.Context) error {
+func (s Server) SendEmails(context echo.Context) error {
 	if err := s.service.SendEmails(); err != nil {
-
 		var sendMailErr subscribers.SendMailError
 		if errors.As(err, &sendMailErr) {
 			s.logger.Print("Unable to send emails: ", sendMailErr)
-			return c.JSON(http.StatusOK, map[string][]string{
+			return context.JSON(http.StatusOK, map[string][]string{
 				"failedEmails": sendMailErr.Subscribers,
 			})
 		}
 	}
-	return c.JSON(http.StatusOK, "")
+	return context.JSON(http.StatusOK, "")
 }

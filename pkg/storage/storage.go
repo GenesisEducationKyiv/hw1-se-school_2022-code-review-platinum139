@@ -6,13 +6,15 @@ import (
 	"os"
 )
 
+const filePermissions = 0600
+
 type Filestore struct {
 	logger   *log.Logger
 	filename string
 }
 
 func (s *Filestore) Add(record string) error {
-	file, err := os.OpenFile(s.filename, os.O_CREATE|os.O_RDWR, 0600)
+	file, err := os.OpenFile(s.filename, os.O_CREATE|os.O_RDWR, filePermissions)
 	if err != nil {
 		return err
 	}
@@ -38,7 +40,7 @@ func (s *Filestore) Add(record string) error {
 }
 
 func (s *Filestore) GetAll() ([]string, error) {
-	file, err := os.OpenFile(s.filename, os.O_RDWR, 0600)
+	file, err := os.OpenFile(s.filename, os.O_RDWR, filePermissions)
 	if err != nil {
 		return nil, err
 	}
