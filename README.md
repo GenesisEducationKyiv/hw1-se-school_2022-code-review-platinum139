@@ -22,11 +22,12 @@ Make sure you have Docker installed.
 
 1. Clone the repository to your computer.
 2. Move to the project folder.
-3. Run following command to build docker image
+3. Create .env file.
+4. Run following command to build docker image.
 ```
 docker build --tag bitcoin-svc .
 ```
-4. Run following command to run docker container.
+5. Run following command to run docker container.
 ```
 docker run --name bitcoin-service -p 8000:8000 bitcoin-svc
 ```
