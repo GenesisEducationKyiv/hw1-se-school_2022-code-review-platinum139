@@ -1,4 +1,4 @@
-package rates
+package currency
 
 import (
 	"fmt"
@@ -7,10 +7,14 @@ import (
 	"strconv"
 )
 
-const baseURL = "https://api.coingate.com/v2/rates/merchant"
+const rateRoute = "v2/rates/merchant"
 
-func GetCurrencyRate(from string, to string) (float64, error) {
-	url := fmt.Sprintf("%s/%s/%s", baseURL, from, to)
+type Service struct {
+	baseURL string
+}
+
+func (s *Service) GetCurrencyRate(from Currency, to Currency) (float64, error) {
+	url := fmt.Sprintf("%s/%s/%s/%s", s.baseURL, rateRoute, from, to)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -32,4 +36,10 @@ func GetCurrencyRate(from string, to string) (float64, error) {
 	}
 
 	return rate, nil
+}
+
+func NewCurrencyService(baseURL string) *Service {
+	return &Service{
+		baseURL: baseURL,
+	}
 }

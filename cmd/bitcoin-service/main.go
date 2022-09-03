@@ -4,6 +4,7 @@ import (
 	"bitcoin-service/config"
 	"bitcoin-service/internal/api"
 	"bitcoin-service/internal/subscribers"
+	"bitcoin-service/pkg/currency"
 	"bitcoin-service/pkg/emails"
 	"bitcoin-service/pkg/storage"
 	"context"
@@ -15,7 +16,7 @@ import (
 )
 
 func main() {
-	appConfig, err := config.NewAppConfig()
+	appConfig, err := config.NewAppConfig(".env")
 	if err != nil {
 		panic(err)
 	}
@@ -24,9 +25,10 @@ func main() {
 
 	mailService := emails.NewEmailService(appConfig)
 	store := storage.NewFilestore(logger, appConfig.StorageFilename)
-	service := subscribers.NewService(logger, store, mailService)
+	subscribersService := subscribers.NewSubscribersService(logger, store, mailService)
+	currencyService := currency.NewCurrencyService(appConfig.CurrencyServiceBaseURL)
 
-	server := api.NewServer(logger, appConfig, service)
+	server := api.NewServer(logger, appConfig, subscribersService, currencyService)
 	server.RegisterRoutes()
 
 	var waitGroup sync.WaitGroup
