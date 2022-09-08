@@ -7,14 +7,16 @@ import (
 	"strconv"
 )
 
-const rateRoute = "v2/rates/merchant"
+const (
+	baseURL   = "https://api.coingate.com"
+	rateRoute = "v2/rates/merchant"
+)
 
-type Service struct {
-	baseURL string
+type CoingateCurrencyProvider struct {
 }
 
-func (s *Service) GetCurrencyRate(from Currency, to Currency) (float64, error) {
-	url := fmt.Sprintf("%s/%s/%s/%s", s.baseURL, rateRoute, from, to)
+func (s *CoingateCurrencyProvider) GetCurrencyRate(from Currency, to Currency) (float64, error) {
+	url := fmt.Sprintf("%s/%s/%s/%s", baseURL, rateRoute, from, to)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -38,8 +40,6 @@ func (s *Service) GetCurrencyRate(from Currency, to Currency) (float64, error) {
 	return rate, nil
 }
 
-func NewCurrencyService(baseURL string) *Service {
-	return &Service{
-		baseURL: baseURL,
-	}
+func NewCurrencyService() *CoingateCurrencyProvider {
+	return &CoingateCurrencyProvider{}
 }

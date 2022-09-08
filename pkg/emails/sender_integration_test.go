@@ -24,7 +24,7 @@ func (s *EmailsServiceIntegrationTestSuite) TestSendEmail_Positive() {
 	emailService := NewEmailService(appConfig)
 
 	// act
-	err = emailService.SendEmail(receiverEmail, subject, text)
+	err = emailService.Send(receiverEmail, subject, text)
 
 	// assert
 	assert.NoError(s.T(), err)

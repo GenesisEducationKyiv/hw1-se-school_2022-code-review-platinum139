@@ -1,26 +1,22 @@
 package currency
 
 import (
-	"bitcoin-service/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
-type CurrencyServiceIntegrationTestSuite struct {
+type CoingateCurrencyProviderServiceIntegrationTestSuite struct {
 	suite.Suite
 }
 
-func (s *CurrencyServiceIntegrationTestSuite) TestGetCurrencyRate_Positive() {
+func (s *CoingateCurrencyProviderServiceIntegrationTestSuite) TestGetCurrencyRate_Positive() {
 	// arrange
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
 	fromCurrency := Btc
 	toCurrency := Uah
 
-	service := NewCurrencyService(appConfig.CurrencyServiceBaseURL)
+	service := NewCurrencyService()
 
 	// act
 	rate, err := service.GetCurrencyRate(fromCurrency, toCurrency)
@@ -31,5 +27,5 @@ func (s *CurrencyServiceIntegrationTestSuite) TestGetCurrencyRate_Positive() {
 }
 
 func TestCurrencyIntegrationTestSuite(t *testing.T) {
-	suite.Run(t, new(CurrencyServiceIntegrationTestSuite))
+	suite.Run(t, new(CoingateCurrencyProviderServiceIntegrationTestSuite))
 }

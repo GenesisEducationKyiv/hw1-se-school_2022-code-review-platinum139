@@ -2,6 +2,7 @@ package api
 
 import (
 	"bitcoin-service/config"
+	"bitcoin-service/internal/common"
 	"bitcoin-service/internal/subscribers"
 	"bitcoin-service/pkg/currency"
 	"bitcoin-service/pkg/storage"
@@ -26,13 +27,13 @@ type SubscribersServiceMock struct {
 	mock.Mock
 }
 
-func (s *SubscribersServiceMock) Add(subscriber string) error {
+func (s *SubscribersServiceMock) Subscribe(subscriber subscribers.Subscriber) error {
 	args := s.Called(subscriber)
 	return args.Error(0)
 }
 
-func (s *SubscribersServiceMock) SendEmails(rate float64, fromCurrency, toCurrency string) error {
-	args := s.Called(rate, fromCurrency, toCurrency)
+func (s *SubscribersServiceMock) SendEmails(message common.Message) error {
+	args := s.Called(message)
 	return args.Error(0)
 }
 
@@ -140,7 +141,9 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_EmailNotProvided() {
 
 func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_RecordAlreadyExists() {
 	// arrange
-	testSubscriber := "test_mail@gmail.com"
+	testSubscriber := subscribers.Subscriber{
+		Email: "test_mail@gmail.com",
+	}
 
 	expectedBody := map[string]string{
 		"error": "email already exists",
@@ -151,13 +154,13 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_RecordAlreadyExists(
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
-	subscribersService.On("Add", testSubscriber).Return(storage.RecordAlreadyExistsError{})
+	subscribersService.On("Subscribe", testSubscriber).Return(storage.RecordAlreadyExistsError{})
 
 	currencyService := new(CurrencyServiceMock)
 	server := NewServer(logger, appConfig, subscribersService, currencyService)
 
 	data := url.Values{}
-	data.Set("email", testSubscriber)
+	data.Set("email", testSubscriber.Email)
 
 	request := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(data.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -180,7 +183,9 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_RecordAlreadyExists(
 
 func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_InternalError() {
 	// arrange
-	testSubscriber := "test_mail@gmail.com"
+	testSubscriber := subscribers.Subscriber{
+		Email: "test_mail@gmail.com",
+	}
 
 	expectedBody := map[string]string{
 		"error": "internal error",
@@ -191,13 +196,13 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_InternalError() {
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
-	subscribersService.On("Add", testSubscriber).Return(errors.New("internal error"))
+	subscribersService.On("Subscribe", testSubscriber).Return(errors.New("internal error"))
 
 	currencyService := new(CurrencyServiceMock)
 	server := NewServer(logger, appConfig, subscribersService, currencyService)
 
 	data := url.Values{}
-	data.Set("email", testSubscriber)
+	data.Set("email", testSubscriber.Email)
 
 	request := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(data.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -220,7 +225,9 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_InternalError() {
 
 func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_StatusOK() {
 	// arrange
-	testSubscriber := "test_mail@gmail.com"
+	testSubscriber := subscribers.Subscriber{
+		Email: "test_mail@gmail.com",
+	}
 
 	appConfig, err := config.NewAppConfig(".env.test")
 	assert.NoError(s.T(), err)
@@ -228,13 +235,13 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_StatusOK() {
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
-	subscribersService.On("Add", testSubscriber).Return(nil)
+	subscribersService.On("Subscribe", testSubscriber).Return(nil)
 
 	currencyService := new(CurrencyServiceMock)
 	server := NewServer(logger, appConfig, subscribersService, currencyService)
 
 	data := url.Values{}
-	data.Set("email", testSubscriber)
+	data.Set("email", testSubscriber.Email)
 
 	request := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(data.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -258,9 +265,11 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_InternalError() {
 	expectedBody := map[string]string{
 		"error": "internal error",
 	}
-	rate := 50000.0
-	fromCurrency := "BTC"
-	toCurrency := "UAH"
+
+	message := common.Message{
+		Subject: "BTC to UAH rate",
+		Text:    "Rate = 50000.00",
+	}
 
 	appConfig, err := config.NewAppConfig(".env.test")
 	assert.NoError(s.T(), err)
@@ -268,7 +277,7 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_InternalError() {
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
-	subscribersService.On("SendEmails", rate, fromCurrency, toCurrency).Return(nil)
+	subscribersService.On("SendEmails", message).Return(nil)
 
 	currencyService := new(CurrencyServiceMock)
 	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(0.0, errors.New("internal error"))
@@ -293,14 +302,20 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_InternalError() {
 
 func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_SendMailError() {
 	// arrange
-	testSubscriber := "test_mail@gmail.com"
+	rate := 50000.0
+
+	testSubscriber := subscribers.Subscriber{
+		Email: "test_mail@gmail.com",
+	}
 
 	expectedBody := map[string][]string{
-		"failedEmails": {testSubscriber},
+		"failedEmails": {testSubscriber.Email},
 	}
-	rate := 50000.0
-	fromCurrency := "BTC"
-	toCurrency := "UAH"
+
+	message := common.Message{
+		Subject: "BTC to UAH rate",
+		Text:    "Rate = 50000.00",
+	}
 
 	appConfig, err := config.NewAppConfig(".env.test")
 	assert.NoError(s.T(), err)
@@ -308,13 +323,13 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_SendMailError() {
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
-	subscribersService.On("SendEmails", rate, fromCurrency, toCurrency).
-		Return(subscribers.SendMailError{
-			Subscribers: []string{testSubscriber},
+	subscribersService.On("SendEmails", message).
+		Return(subscribers.SendMessageError{
+			FailedSubscribers: []string{testSubscriber.Email},
 		})
 
 	currencyService := new(CurrencyServiceMock)
-	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(50000.0, nil)
+	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(rate, nil)
 
 	server := NewServer(logger, appConfig, subscribersService, currencyService)
 
@@ -341,8 +356,11 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_SendMailError() {
 func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_StatusOK() {
 	// arrange
 	rate := 50000.0
-	fromCurrency := "BTC"
-	toCurrency := "UAH"
+
+	message := common.Message{
+		Subject: "BTC to UAH rate",
+		Text:    "Rate = 50000.00",
+	}
 
 	appConfig, err := config.NewAppConfig(".env.test")
 	assert.NoError(s.T(), err)
@@ -350,10 +368,10 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_StatusOK() {
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
-	subscribersService.On("SendEmails", rate, fromCurrency, toCurrency).Return(nil)
+	subscribersService.On("SendEmails", message).Return(nil)
 
 	currencyService := new(CurrencyServiceMock)
-	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(50000.0, nil)
+	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(rate, nil)
 
 	server := NewServer(logger, appConfig, subscribersService, currencyService)
 

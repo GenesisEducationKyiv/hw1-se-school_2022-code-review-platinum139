@@ -1,6 +1,7 @@
 package subscribers
 
 import (
+	"bitcoin-service/internal/common"
 	"errors"
 	"log"
 	"os"
@@ -11,25 +12,25 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type StorageMock struct {
+type SubscribersRepoMock struct {
 	mock.Mock
 }
 
-func (s *StorageMock) Add(record string) error {
-	args := s.Called(record)
+func (s *SubscribersRepoMock) CreateSubscriber(subscriber Subscriber) error {
+	args := s.Called(subscriber)
 	return args.Error(0)
 }
 
-func (s *StorageMock) GetAll() ([]string, error) {
+func (s *SubscribersRepoMock) GetSubscribers() ([]Subscriber, error) {
 	args := s.Called()
-	return args.Get(0).([]string), args.Error(1)
+	return args.Get(0).([]Subscriber), args.Error(1)
 }
 
 type EmailSenderMock struct {
 	mock.Mock
 }
 
-func (s *EmailSenderMock) SendEmail(receiverEmail string, subject string, text string) error {
+func (s *EmailSenderMock) Send(receiverEmail string, subject string, text string) error {
 	args := s.Called(receiverEmail, subject, text)
 	return args.Error(0)
 }
@@ -40,60 +41,62 @@ type SubscribersServiceUnitTestSuite struct {
 
 func (s *SubscribersServiceUnitTestSuite) TestSendEmails_Positive() {
 	// arrange
-	rate := 50000.0
-	fromCurrency := "BTC"
-	toCurrency := "UAH"
 	receiver := "test_mail@gmail.com"
-	subscribers := []string{receiver}
-	subject := "BTC to UAH rate"
-	text := "Rate = 50000.00"
+	subscribers := []Subscriber{{Email: receiver}}
 
-	storage := new(StorageMock)
-	storage.On("GetAll").Return(subscribers, nil)
+	message := common.Message{
+		Subject: "BTC to UAH rate",
+		Text:    "Rate = 50000.00",
+	}
+
+	subscribersRepo := new(SubscribersRepoMock)
+	subscribersRepo.On("GetSubscribers").Return(subscribers, nil)
 
 	emailSender := new(EmailSenderMock)
-	emailSender.On("SendEmail", receiver, subject, text).Return(nil)
+	emailSender.On("Send", receiver, message.Subject, message.Text).Return(nil)
 
 	logger := log.New(os.Stdout, "", 4)
-	service := NewSubscribersService(logger, storage, emailSender)
+	service := NewSubscribersService(logger, subscribersRepo, emailSender)
 
 	// act
-	err := service.SendEmails(rate, fromCurrency, toCurrency)
+	err := service.SendEmails(message)
 
 	// assert
 	assert.NoError(s.T(), err)
 
-	storage.AssertCalled(s.T(), "GetAll")
-	emailSender.AssertCalled(s.T(), "SendEmail", receiver, subject, text)
+	subscribersRepo.AssertCalled(s.T(), "GetSubscribers")
+	emailSender.AssertCalled(s.T(), "Send", receiver, message.Subject, message.Text)
 }
 
 func (s *SubscribersServiceUnitTestSuite) TestSendEmails_FailedEmails() {
 	// arrange
-	rate := 50000.0
-	fromCurrency := "BTC"
-	toCurrency := "UAH"
 	receiver := "test_mail@gmail.com"
-	subscribers := []string{receiver}
-	subject := "BTC to UAH rate"
-	text := "Rate = 50000.00"
+	subscribers := []Subscriber{{Email: receiver}}
+	failedEmails := []string{receiver}
 
-	storage := new(StorageMock)
-	storage.On("GetAll").Return(subscribers, nil)
+	message := common.Message{
+		Subject: "BTC to UAH rate",
+		Text:    "Rate = 50000.00",
+	}
+
+	subscribersRepo := new(SubscribersRepoMock)
+	subscribersRepo.On("GetSubscribers").Return(subscribers, nil)
 
 	emailSender := new(EmailSenderMock)
-	emailSender.On("SendEmail", receiver, subject, text).Return(errors.New("failed to send"))
+	emailSender.On("Send", receiver, message.Subject, message.Text).
+		Return(errors.New("failed to send"))
 
 	logger := log.New(os.Stdout, "", 4)
-	service := NewSubscribersService(logger, storage, emailSender)
+	service := NewSubscribersService(logger, subscribersRepo, emailSender)
 
 	// act
-	err := service.SendEmails(rate, fromCurrency, toCurrency)
+	err := service.SendEmails(message)
 
 	// assert
-	assert.EqualError(s.T(), err, SendMailError{Subscribers: subscribers}.Error())
+	assert.EqualError(s.T(), err, SendMessageError{FailedSubscribers: failedEmails}.Error())
 
-	storage.AssertCalled(s.T(), "GetAll")
-	emailSender.AssertCalled(s.T(), "SendEmail", receiver, subject, text)
+	subscribersRepo.AssertCalled(s.T(), "GetSubscribers")
+	emailSender.AssertCalled(s.T(), "Send", receiver, message.Subject, message.Text)
 }
 
 func TestSubscribersServiceUnitTestSuite(t *testing.T) {
