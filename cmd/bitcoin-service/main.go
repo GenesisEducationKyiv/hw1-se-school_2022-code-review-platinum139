@@ -3,6 +3,7 @@ package main
 import (
 	"bitcoin-service/config"
 	"bitcoin-service/internal/api"
+	"bitcoin-service/internal/repository"
 	"bitcoin-service/internal/subscribers"
 	"bitcoin-service/pkg/currency"
 	"bitcoin-service/pkg/emails"
@@ -23,10 +24,11 @@ func main() {
 
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
+	fileStorage := storage.NewFilestore(logger, appConfig.StorageFilename)
 	mailService := emails.NewEmailService(appConfig)
-	store := storage.NewFilestore(logger, appConfig.StorageFilename)
-	subscribersService := subscribers.NewSubscribersService(logger, store, mailService)
-	currencyService := currency.NewCurrencyService(appConfig.CurrencyServiceBaseURL)
+	subscribersRepo := repository.NewSubscribersFileRepo(fileStorage)
+	subscribersService := subscribers.NewSubscribersService(logger, subscribersRepo, mailService)
+	currencyService := currency.NewCurrencyService()
 
 	server := api.NewServer(logger, appConfig, subscribersService, currencyService)
 	server.RegisterRoutes()

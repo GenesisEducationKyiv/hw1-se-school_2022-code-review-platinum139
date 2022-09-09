@@ -2,6 +2,8 @@ package api
 
 import (
 	"bitcoin-service/config"
+	"bitcoin-service/internal/common"
+	"bitcoin-service/internal/subscribers"
 	"bitcoin-service/pkg/currency"
 	"context"
 	"errors"
@@ -13,8 +15,8 @@ import (
 )
 
 type SubscribersService interface {
-	Add(subscriber string) error
-	SendEmails(rate float64, fromCurrency, toCurrency string) error
+	Subscribe(subscriber subscribers.Subscriber) error
+	SendEmails(message common.Message) error
 }
 
 type CurrencyService interface {

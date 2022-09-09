@@ -2,6 +2,7 @@ package emails
 
 import (
 	"bitcoin-service/config"
+
 	"gopkg.in/mail.v2"
 )
 
@@ -10,7 +11,7 @@ type Service struct {
 	dialer      *mail.Dialer
 }
 
-func (s Service) SendEmail(receiverEmail, subject, text string) error {
+func (s Service) Send(receiverEmail, subject, text string) error {
 	message := mail.NewMessage()
 	message.SetHeader("From", s.senderEmail)
 	message.SetHeader("To", receiverEmail)

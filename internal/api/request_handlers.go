@@ -1,16 +1,18 @@
 package api
 
 import (
+	"bitcoin-service/internal/common"
 	"bitcoin-service/internal/subscribers"
 	"bitcoin-service/pkg/currency"
 	"bitcoin-service/pkg/storage"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
 
-type Subscriber struct {
+type SubscribeRequest struct {
 	Email string `form:"email"`
 }
 
@@ -26,21 +28,24 @@ func (s Server) GetRateHandler(context echo.Context) error {
 }
 
 func (s Server) SubscribeHandler(context echo.Context) error {
-	subscriber := new(Subscriber)
-	if err := context.Bind(subscriber); err != nil {
+	subscribeRequest := new(SubscribeRequest)
+	if err := context.Bind(subscribeRequest); err != nil {
 		s.logger.Print("Unable to get form data from request:", err)
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{
 			"error": "bad request",
 		})
 	}
-	if subscriber.Email == "" {
+	if subscribeRequest.Email == "" {
 		s.logger.Print("Bad request: email was not provided")
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{
 			"error": "email must be provided",
 		})
 	}
 
-	err := s.subscribersService.Add(subscriber.Email)
+	subscriber := subscribers.Subscriber{
+		Email: subscribeRequest.Email,
+	}
+	err := s.subscribersService.Subscribe(subscriber)
 	if err != nil {
 		if errors.Is(err, storage.RecordAlreadyExistsError{}) {
 			s.logger.Print("Email already exists in storage:", subscriber.Email)
@@ -58,7 +63,10 @@ func (s Server) SubscribeHandler(context echo.Context) error {
 }
 
 func (s Server) SendEmailsHandler(context echo.Context) error {
-	rate, err := s.currencyService.GetCurrencyRate(currency.Btc, currency.Uah)
+	fromCurrency := currency.Currency(s.config.FromCurrency)
+	toCurrency := currency.Currency(s.config.ToCurrency)
+
+	rate, err := s.currencyService.GetCurrencyRate(fromCurrency, toCurrency)
 	if err != nil {
 		s.logger.Print("Unable to get currency rate:", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, map[string]string{
@@ -66,13 +74,18 @@ func (s Server) SendEmailsHandler(context echo.Context) error {
 		})
 	}
 
-	err = s.subscribersService.SendEmails(rate, currency.Btc.ToString(), currency.Uah.ToString())
+	message := common.Message{
+		Subject: fmt.Sprintf("%s to %s rate", fromCurrency, toCurrency),
+		Text:    fmt.Sprintf("Rate = %.2f", rate),
+	}
+
+	err = s.subscribersService.SendEmails(message)
 	if err != nil {
-		var sendMailErr subscribers.SendMailError
+		var sendMailErr subscribers.SendMessageError
 		if errors.As(err, &sendMailErr) {
 			s.logger.Print("Unable to send emails: ", sendMailErr)
 			return context.JSON(http.StatusOK, map[string][]string{
-				"failedEmails": sendMailErr.Subscribers,
+				"failedEmails": sendMailErr.FailedSubscribers,
 			})
 		}
 	}

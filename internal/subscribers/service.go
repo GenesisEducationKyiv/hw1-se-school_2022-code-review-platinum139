@@ -1,63 +1,56 @@
 package subscribers
 
 import (
-	"fmt"
+	"bitcoin-service/internal/common"
 	"log"
 )
 
-type Storage interface {
-	Add(record string) error
-	GetAll() ([]string, error)
+type Repo interface {
+	CreateSubscriber(subscriber Subscriber) error
+	GetSubscribers() ([]Subscriber, error)
 }
 
-type EmailSender interface {
-	SendEmail(receiverEmail string, subject string, text string) error
+type MessageSender interface {
+	Send(receiver string, subject string, text string) error
 }
 
 type Service struct {
-	log        *log.Logger
-	storage    Storage
-	mailSender EmailSender
+	log             *log.Logger
+	subscribersRepo Repo
+	messageSender   MessageSender
 }
 
-func (s Service) Add(subscriber string) error {
-	return s.storage.Add(subscriber)
+func (s Service) Subscribe(subscriber Subscriber) error {
+	return s.subscribersRepo.CreateSubscriber(subscriber)
 }
 
-func (s Service) SendEmails(rate float64, fromCurrency, toCurrency string) error {
-	subscribers, err := s.getAll()
+func (s Service) SendEmails(message common.Message) error {
+	subscribers, err := s.subscribersRepo.GetSubscribers()
 	if err != nil {
 		s.log.Print("Unable to get subscribers from storage:", err)
 		return err
 	}
 
-	var failedEmails []string
+	var failedSubscribers []string
 	for _, subscriber := range subscribers {
-		message := fmt.Sprintf("Rate = %.2f", rate)
-		subject := fmt.Sprintf("%s to %s rate", fromCurrency, toCurrency)
-
-		err := s.mailSender.SendEmail(subscriber, subject, message)
+		err := s.messageSender.Send(subscriber.Email, message.Subject, message.Text)
 		if err != nil {
 			s.log.Printf("Unable to send mails via mail service for %s: %s", subscriber, err)
-			failedEmails = append(failedEmails, subscriber)
+			failedSubscribers = append(failedSubscribers, subscriber.Email)
 		}
 	}
 
-	if len(failedEmails) != 0 {
-		return SendMailError{Subscribers: failedEmails}
+	if len(failedSubscribers) != 0 {
+		return SendMessageError{FailedSubscribers: failedSubscribers}
 	}
 
 	return nil
 }
 
-func (s Service) getAll() ([]string, error) {
-	return s.storage.GetAll()
-}
-
-func NewSubscribersService(logger *log.Logger, storage Storage, mailSender EmailSender) *Service {
+func NewSubscribersService(logger *log.Logger, subscribersRepo Repo, mailSender MessageSender) *Service {
 	return &Service{
-		log:        logger,
-		storage:    storage,
-		mailSender: mailSender,
+		log:             logger,
+		subscribersRepo: subscribersRepo,
+		messageSender:   mailSender,
 	}
 }
