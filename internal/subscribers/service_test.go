@@ -1,6 +1,7 @@
 package subscribers
 
 import (
+	"bitcoin-service/config"
 	"bitcoin-service/internal/common"
 	"errors"
 	"log"
@@ -37,6 +38,14 @@ func (s *EmailSenderMock) Send(receiverEmail string, subject string, text string
 
 type SubscribersServiceUnitTestSuite struct {
 	suite.Suite
+	logger *log.Logger
+}
+
+func (s *SubscribersServiceUnitTestSuite) SetupSuite() {
+	appConfig, err := config.NewAppConfig(".env.test")
+	assert.NoError(s.T(), err)
+
+	s.logger = log.New(os.Stdout, "", appConfig.LogLevel)
 }
 
 func (s *SubscribersServiceUnitTestSuite) TestSendEmails_Positive() {
@@ -55,8 +64,7 @@ func (s *SubscribersServiceUnitTestSuite) TestSendEmails_Positive() {
 	emailSender := new(EmailSenderMock)
 	emailSender.On("Send", receiver, message.Subject, message.Text).Return(nil)
 
-	logger := log.New(os.Stdout, "", 4)
-	service := NewSubscribersService(logger, subscribersRepo, emailSender)
+	service := NewSubscribersService(s.logger, subscribersRepo, emailSender)
 
 	// act
 	err := service.SendEmails(message)
@@ -86,8 +94,7 @@ func (s *SubscribersServiceUnitTestSuite) TestSendEmails_FailedEmails() {
 	emailSender.On("Send", receiver, message.Subject, message.Text).
 		Return(errors.New("failed to send"))
 
-	logger := log.New(os.Stdout, "", 4)
-	service := NewSubscribersService(logger, subscribersRepo, emailSender)
+	service := NewSubscribersService(s.logger, subscribersRepo, emailSender)
 
 	// act
 	err := service.SendEmails(message)

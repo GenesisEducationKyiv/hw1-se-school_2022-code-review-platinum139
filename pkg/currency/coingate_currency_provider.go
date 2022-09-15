@@ -8,15 +8,28 @@ import (
 )
 
 const (
-	baseURL   = "https://api.coingate.com"
-	rateRoute = "v2/rates/merchant"
+	coingateBaseURL   = "https://api.coingate.com"
+	coingateRateRoute = "v2/rates/merchant"
 )
 
 type CoingateCurrencyProvider struct {
+	next Provider
 }
 
-func (s *CoingateCurrencyProvider) GetCurrencyRate(from Currency, to Currency) (float64, error) {
-	url := fmt.Sprintf("%s/%s/%s/%s", baseURL, rateRoute, from, to)
+func (p *CoingateCurrencyProvider) SetNext(next Provider) {
+	p.next = next
+}
+
+func (p *CoingateCurrencyProvider) GetCurrencyRate(from Currency, to Currency) (float64, error) {
+	rate, err := p.getCurrencyRate(from, to)
+	if err != nil && p.next != nil {
+		return (p.next).GetCurrencyRate(from, to)
+	}
+	return rate, err
+}
+
+func (s *CoingateCurrencyProvider) getCurrencyRate(from Currency, to Currency) (float64, error) {
+	url := fmt.Sprintf("%s/%s/%s/%s", coingateBaseURL, coingateRateRoute, from, to)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -40,6 +53,6 @@ func (s *CoingateCurrencyProvider) GetCurrencyRate(from Currency, to Currency) (
 	return rate, nil
 }
 
-func NewCurrencyService() *CoingateCurrencyProvider {
+func NewCoingateCurrencyProvider() *CoingateCurrencyProvider {
 	return &CoingateCurrencyProvider{}
 }

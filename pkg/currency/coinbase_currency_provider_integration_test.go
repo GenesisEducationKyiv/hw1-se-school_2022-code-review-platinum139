@@ -7,16 +7,16 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type CoingateCurrencyProviderIntegrationTestSuite struct {
+type CoinbaseCurrencyProviderIntegrationTestSuite struct {
 	suite.Suite
 }
 
-func (s *CoingateCurrencyProviderIntegrationTestSuite) TestGetCurrencyRate_Positive() {
+func (s *CoinbaseCurrencyProviderIntegrationTestSuite) TestGetCurrencyRate_Positive() {
 	// arrange
 	fromCurrency := Btc
 	toCurrency := Uah
 
-	service := NewCoingateCurrencyProvider()
+	service := NewCoinbaseCurrencyProvider()
 
 	// act
 	rate, err := service.GetCurrencyRate(fromCurrency, toCurrency)
@@ -26,6 +26,6 @@ func (s *CoingateCurrencyProviderIntegrationTestSuite) TestGetCurrencyRate_Posit
 	assert.NotZero(s.T(), rate)
 }
 
-func TestCoingateCurrencyIntegrationTestSuite(t *testing.T) {
-	suite.Run(t, new(CoingateCurrencyProviderIntegrationTestSuite))
+func TestCoinbaseCurrencyIntegrationTestSuite(t *testing.T) {
+	suite.Run(t, new(CoinbaseCurrencyProviderIntegrationTestSuite))
 }

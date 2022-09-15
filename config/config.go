@@ -6,16 +6,18 @@ import (
 )
 
 type AppConfig struct {
-	StorageFilename string `env:"STORAGE_FILENAME"           envDefault:"emails.storage"`
-	FromCurrency    string `env:"FROM_CURRENCY"              envDefault:"BTC"`
-	ToCurrency      string `env:"TO_CURRENCY"                envDefault:"UAH"`
-	SMTPHost        string `env:"SMTP_HOST"                  envDefault:"smtp.gmail.com"`
-	SMTPPort        int    `env:"SMTP_PORT"                  envDefault:"587"`
-	SMTPUsername    string `env:"SMTP_USERNAME"`
-	SMTPPassword    string `env:"SMTP_PASSWORD"`
-	ServerHost      string `env:"SERVER_HOST"                envDefault:"localhost"`
-	ServerPort      string `env:"SERVER_PORT"                envDefault:"80"`
-	LogLevel        int    `env:"LOG_LEVEL"                  envDefault:"5"`
+	StorageFilename  string `env:"STORAGE_FILENAME"           envDefault:"emails.storage"`
+	FromCurrency     string `env:"FROM_CURRENCY"              envDefault:"BTC"`
+	ToCurrency       string `env:"TO_CURRENCY"                envDefault:"UAH"`
+	CurrencyProvider string `env:"CURRENCY_PROVIDER"`
+	CachingPeriodMin int    `env:"CACHING_PERIOD_MIN"         envDefault:"5"`
+	SMTPHost         string `env:"SMTP_HOST"                  envDefault:"smtp.gmail.com"`
+	SMTPPort         int    `env:"SMTP_PORT"                  envDefault:"587"`
+	SMTPUsername     string `env:"SMTP_USERNAME"`
+	SMTPPassword     string `env:"SMTP_PASSWORD"`
+	ServerHost       string `env:"SERVER_HOST"                envDefault:"localhost"`
+	ServerPort       string `env:"SERVER_PORT"                envDefault:"80"`
+	LogLevel         int    `env:"LOG_LEVEL"                  envDefault:"5"`
 }
 
 func NewAppConfig(envFilename string) (*AppConfig, error) {

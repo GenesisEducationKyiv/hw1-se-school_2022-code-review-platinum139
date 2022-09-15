@@ -48,20 +48,26 @@ func (s *CurrencyServiceMock) GetCurrencyRate(from currency.Currency, to currenc
 
 type RequestHandlersUnitTestSuite struct {
 	suite.Suite
+	config *config.AppConfig
+	logger *log.Logger
+}
+
+func (s *RequestHandlersUnitTestSuite) SetupSuite() {
+	appConfig, err := config.NewAppConfig(".env.test")
+	assert.NoError(s.T(), err)
+	s.config = appConfig
+
+	s.logger = log.New(os.Stdout, "", appConfig.LogLevel)
 }
 
 func (s *RequestHandlersUnitTestSuite) TestGetRateHandler_StatusOK() {
 	// arrange
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 	subscribersService := new(SubscribersServiceMock)
 
 	currencyService := new(CurrencyServiceMock)
 	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(50000.0, nil)
 
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	request := httptest.NewRequest(http.MethodGet, "/rate", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -70,7 +76,7 @@ func (s *RequestHandlersUnitTestSuite) TestGetRateHandler_StatusOK() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.GetRateHandler(ctx)
+	err := server.GetRateHandler(ctx)
 
 	// assert
 	assert.NoError(s.T(), err)
@@ -83,16 +89,12 @@ func (s *RequestHandlersUnitTestSuite) TestGetRateHandler_StatusBadRequest() {
 		"error": "invalid status value",
 	}
 
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 	subscribersService := new(SubscribersServiceMock)
 
 	currencyService := new(CurrencyServiceMock)
 	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(0.0, http.ErrServerClosed)
 
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	request := httptest.NewRequest(http.MethodGet, "/rate", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -101,7 +103,7 @@ func (s *RequestHandlersUnitTestSuite) TestGetRateHandler_StatusBadRequest() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.GetRateHandler(ctx)
+	err := server.GetRateHandler(ctx)
 	httpErr, ok := err.(*echo.HTTPError)
 
 	// assert
@@ -115,13 +117,10 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_EmailNotProvided() {
 	expectedBody := map[string]string{
 		"error": "email must be provided",
 	}
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
 
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 	subscribersService := new(SubscribersServiceMock)
 	currencyService := new(CurrencyServiceMock)
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	request := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -130,7 +129,7 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_EmailNotProvided() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SubscribeHandler(ctx)
+	err := server.SubscribeHandler(ctx)
 	httpErr, ok := err.(*echo.HTTPError)
 
 	// assert
@@ -148,16 +147,12 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_RecordAlreadyExists(
 	expectedBody := map[string]string{
 		"error": "email already exists",
 	}
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
 	subscribersService.On("Subscribe", testSubscriber).Return(storage.RecordAlreadyExistsError{})
 
 	currencyService := new(CurrencyServiceMock)
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	data := url.Values{}
 	data.Set("email", testSubscriber.Email)
@@ -172,7 +167,7 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_RecordAlreadyExists(
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SubscribeHandler(ctx)
+	err := server.SubscribeHandler(ctx)
 	httpErr, ok := err.(*echo.HTTPError)
 
 	// assert
@@ -190,16 +185,12 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_InternalError() {
 	expectedBody := map[string]string{
 		"error": "internal error",
 	}
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
 	subscribersService := new(SubscribersServiceMock)
 	subscribersService.On("Subscribe", testSubscriber).Return(errors.New("internal error"))
 
 	currencyService := new(CurrencyServiceMock)
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	data := url.Values{}
 	data.Set("email", testSubscriber.Email)
@@ -214,7 +205,7 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_InternalError() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SubscribeHandler(ctx)
+	err := server.SubscribeHandler(ctx)
 	httpErr, ok := err.(*echo.HTTPError)
 
 	// assert
@@ -229,16 +220,11 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_StatusOK() {
 		Email: "test_mail@gmail.com",
 	}
 
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
-
 	subscribersService := new(SubscribersServiceMock)
 	subscribersService.On("Subscribe", testSubscriber).Return(nil)
 
 	currencyService := new(CurrencyServiceMock)
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	data := url.Values{}
 	data.Set("email", testSubscriber.Email)
@@ -253,7 +239,7 @@ func (s *RequestHandlersUnitTestSuite) TestSubscribeHandler_StatusOK() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SubscribeHandler(ctx)
+	err := server.SubscribeHandler(ctx)
 
 	// assert
 	assert.NoError(s.T(), err)
@@ -271,18 +257,13 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_InternalError() {
 		Text:    "Rate = 50000.00",
 	}
 
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
-
 	subscribersService := new(SubscribersServiceMock)
 	subscribersService.On("SendEmails", message).Return(nil)
 
 	currencyService := new(CurrencyServiceMock)
 	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(0.0, errors.New("internal error"))
 
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	request := httptest.NewRequest(http.MethodPost, "/sendEmails", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -291,7 +272,7 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_InternalError() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SendEmailsHandler(ctx)
+	err := server.SendEmailsHandler(ctx)
 	httpErr, ok := err.(*echo.HTTPError)
 
 	// assert
@@ -317,11 +298,6 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_SendMailError() {
 		Text:    "Rate = 50000.00",
 	}
 
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
-
 	subscribersService := new(SubscribersServiceMock)
 	subscribersService.On("SendEmails", message).
 		Return(subscribers.SendMessageError{
@@ -331,7 +307,7 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_SendMailError() {
 	currencyService := new(CurrencyServiceMock)
 	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(rate, nil)
 
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	request := httptest.NewRequest(http.MethodPost, "/sendEmails", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -340,7 +316,7 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_SendMailError() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SendEmailsHandler(ctx)
+	err := server.SendEmailsHandler(ctx)
 
 	// assert
 	assert.NoError(s.T(), err)
@@ -362,18 +338,13 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_StatusOK() {
 		Text:    "Rate = 50000.00",
 	}
 
-	appConfig, err := config.NewAppConfig(".env.test")
-	assert.NoError(s.T(), err)
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
-
 	subscribersService := new(SubscribersServiceMock)
 	subscribersService.On("SendEmails", message).Return(nil)
 
 	currencyService := new(CurrencyServiceMock)
 	currencyService.On("GetCurrencyRate", currency.Btc, currency.Uah).Return(rate, nil)
 
-	server := NewServer(logger, appConfig, subscribersService, currencyService)
+	server := NewServer(s.logger, s.config, subscribersService, currencyService)
 
 	request := httptest.NewRequest(http.MethodPost, "/sendEmails", nil)
 	responseRecorder := httptest.NewRecorder()
@@ -382,7 +353,7 @@ func (s *RequestHandlersUnitTestSuite) TestSendEmailsHandler_StatusOK() {
 	ctx := e.NewContext(request, responseRecorder)
 
 	// act
-	err = server.SendEmailsHandler(ctx)
+	err := server.SendEmailsHandler(ctx)
 
 	// assert
 	assert.NoError(s.T(), err)
