@@ -7,6 +7,7 @@ import (
 
 type AppConfig struct {
 	StorageFilename  string `env:"STORAGE_FILENAME"           envDefault:"emails.storage"`
+	RateValueBitSize int    `env:"RATE_VALUE_BIT_SIZE"        envDefault:"64"`
 	FromCurrency     string `env:"FROM_CURRENCY"              envDefault:"BTC"`
 	ToCurrency       string `env:"TO_CURRENCY"                envDefault:"UAH"`
 	CurrencyProvider string `env:"CURRENCY_PROVIDER"`

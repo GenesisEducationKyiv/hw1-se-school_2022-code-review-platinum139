@@ -3,11 +3,16 @@ package main
 import (
 	"bitcoin-service/config"
 	"bitcoin-service/internal/api"
-	"bitcoin-service/internal/currency_providers"
-	"bitcoin-service/internal/repository"
-	"bitcoin-service/internal/subscribers"
+	currencyCtrl "bitcoin-service/internal/currency/controller"
+	currency "bitcoin-service/internal/currency/domain"
+	"bitcoin-service/internal/currency/infrastructure/currency_provider_creators"
+	notificationCtrl "bitcoin-service/internal/notification/controller"
+	notification "bitcoin-service/internal/notification/domain"
+	subscribersCtrl "bitcoin-service/internal/subscribers/controller"
+	subscribers "bitcoin-service/internal/subscribers/domain"
+	"bitcoin-service/internal/subscribers/infrastructure"
 	"bitcoin-service/pkg/emails"
-	"bitcoin-service/pkg/storage"
+	"bitcoin-service/pkg/file_storage"
 	"context"
 	"log"
 	"os"
@@ -24,24 +29,33 @@ func main() {
 
 	logger := log.New(os.Stdout, "", appConfig.LogLevel)
 
-	fileStorage := storage.NewFilestore(logger, appConfig.StorageFilename)
-	mailService := emails.NewEmailService(appConfig)
-	subscribersRepo := repository.NewSubscribersFileRepo(fileStorage)
-	subscribersService := subscribers.NewSubscribersService(logger, subscribersRepo, mailService)
+	fileStorage := file_storage.NewFileStorage(logger, appConfig.StorageFilename)
+	subscribersRepo := infrastructure.NewSubscribersFileRepo(*fileStorage)
+	subscribersService := subscribers.NewSubscribersService(logger, subscribersRepo)
+	subscribersController := subscribersCtrl.NewSubscribersController(logger, appConfig, subscribersService)
 
-	var providerCreator currency_providers.CurrencyProviderCreator
+	var providerCreator currency.CurrencyProviderCreator
 	switch appConfig.CurrencyProvider {
-	case string(currency_providers.Coinbase):
-		providerCreator = currency_providers.NewCoinbaseProviderCreator(logger, appConfig.CachingPeriodMin)
-	case string(currency_providers.Coingate):
-		providerCreator = currency_providers.NewCoingateProviderCreator(logger, appConfig.CachingPeriodMin)
+	case string(currency.Coinbase):
+		providerCreator = currency_provider_creators.NewCoinbaseProviderCreator(
+			logger, appConfig.CachingPeriodMin, appConfig.RateValueBitSize)
+	case string(currency.Coingate):
+		providerCreator = currency_provider_creators.NewCoingateProviderCreator(
+			logger, appConfig.CachingPeriodMin, appConfig.RateValueBitSize)
 	default:
 		log.Fatalf("Invalid currency provider specified in config.")
 	}
 
-	currencyService := providerCreator.CreateProvider()
+	currencyProvider := providerCreator.CreateProvider()
+	currencyService := currency.NewCurrencyService(currencyProvider)
+	currencyController := currencyCtrl.NewCurrencyController(logger, currencyService)
 
-	server := api.NewServer(logger, appConfig, subscribersService, currencyService)
+	mailService := emails.NewEmailService(appConfig)
+	notificationService := notification.NewNotificationService(
+		logger, appConfig, mailService, currencyService, subscribersService)
+	notificationController := notificationCtrl.NewNotificationController(logger, notificationService)
+
+	server := api.NewServer(logger, appConfig, notificationController, currencyController, subscribersController)
 	server.RegisterRoutes()
 
 	var waitGroup sync.WaitGroup
