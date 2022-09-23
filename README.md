@@ -2,6 +2,9 @@
 
 This application provides an API for sending bitcoin rate to subscribers.
 
+## Architecture
+![alt text](architecture.png)
+
 ## API
 
 1. GET /rate
