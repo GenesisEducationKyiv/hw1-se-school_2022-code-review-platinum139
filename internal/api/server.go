@@ -2,9 +2,9 @@ package api
 
 import (
 	"bitcoin-service/config"
-	"bitcoin-service/internal/common"
-	"bitcoin-service/internal/subscribers"
-	"bitcoin-service/pkg/currency"
+	currency "bitcoin-service/internal/currency/controller"
+	notification "bitcoin-service/internal/notification/controller"
+	subscribers "bitcoin-service/internal/subscribers/controller"
 	"context"
 	"errors"
 	"fmt"
@@ -14,27 +14,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type SubscribersService interface {
-	Subscribe(subscriber subscribers.Subscriber) error
-	SendEmails(message common.Message) error
-}
-
-type CurrencyService interface {
-	GetCurrencyRate(from currency.Currency, to currency.Currency) (float64, error)
-}
-
 type Server struct {
-	logger             *log.Logger
-	config             *config.AppConfig
-	subscribersService SubscribersService
-	currencyService    CurrencyService
-	echoServer         *echo.Echo
+	logger                 *log.Logger
+	config                 *config.AppConfig
+	notificationController *notification.Controller
+	currencyController     *currency.Controller
+	subscribersController  *subscribers.Controller
+	echoServer             *echo.Echo
 }
 
 func (s Server) RegisterRoutes() {
-	s.echoServer.GET("/rate", s.GetRateHandler)
-	s.echoServer.POST("/subscribe", s.SubscribeHandler)
-	s.echoServer.POST("/sendEmails", s.SendEmailsHandler)
+	s.echoServer.GET("/rate", s.currencyController.GetRateHandler)
+	s.echoServer.POST("/subscribe", s.subscribersController.SubscribeHandler)
+	s.echoServer.POST("/sendEmails", s.notificationController.SendEmailsHandler)
 }
 
 func (s Server) Run() {
@@ -49,17 +41,19 @@ func (s Server) Shutdown(ctx context.Context) error {
 }
 
 func NewServer(
-	logger *log.Logger, cfg *config.AppConfig,
-	subscribersService SubscribersService,
-	currencyService CurrencyService) *Server {
-
+	logger *log.Logger,
+	cfg *config.AppConfig,
+	notificationController *notification.Controller,
+	currencyController *currency.Controller,
+	subscribersController *subscribers.Controller,
+) *Server {
 	echoServer := echo.New()
-
 	return &Server{
-		logger:             logger,
-		config:             cfg,
-		subscribersService: subscribersService,
-		currencyService:    currencyService,
-		echoServer:         echoServer,
+		logger:                 logger,
+		config:                 cfg,
+		notificationController: notificationController,
+		currencyController:     currencyController,
+		subscribersController:  subscribersController,
+		echoServer:             echoServer,
 	}
 }
