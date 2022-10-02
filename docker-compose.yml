@@ -24,6 +24,18 @@ services:
     networks:
      - bitcoin_service_net
 
+  logs-printer:
+    build: ./logs-printer
+    container_name: logs-printer
+    image: logs-printer
+    restart: always
+    tty: true
+    depends_on:
+      rabbit-mq:
+        condition: service_healthy
+    networks:
+      - bitcoin_service_net
+
   rabbit-mq:
     image: "rabbitmq:3-management"
     container_name: "rabbit-mq"

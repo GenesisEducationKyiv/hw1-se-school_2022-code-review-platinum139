@@ -40,7 +40,7 @@ func (s *FileStorage) Add(record string) error {
 }
 
 func (s *FileStorage) GetAll() ([]string, error) {
-	file, err := os.OpenFile(s.filename, os.O_RDWR, filePermissions)
+	file, err := os.OpenFile(s.filename, os.O_CREATE|os.O_RDWR, filePermissions)
 	if err != nil {
 		return nil, err
 	}
