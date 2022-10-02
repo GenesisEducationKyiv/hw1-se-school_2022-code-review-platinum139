@@ -3,14 +3,14 @@ package infrastructure
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"subscribers-service/internal/common"
 )
 
 type CurrencyServiceClientImpl struct {
-	log                 *log.Logger
+	log                 common.Logger
 	currencyServiceHost string
 	currencyServicePort string
 	rateBitSize         int
@@ -42,7 +42,7 @@ func (c *CurrencyServiceClientImpl) GetRate() (float64, error) {
 }
 
 func NewCurrencyServiceClientImpl(
-	log *log.Logger,
+	log common.Logger,
 	currencyServiceHost string,
 	currencyServicePort string,
 	rateBitSize int,

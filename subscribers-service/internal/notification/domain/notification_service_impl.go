@@ -2,14 +2,13 @@ package domain
 
 import (
 	"fmt"
-	"log"
 	"subscribers-service/config"
-	"subscribers-service/internal/notification/common"
+	"subscribers-service/internal/common"
 	subscribersDomain "subscribers-service/internal/subscribers/domain"
 )
 
 type ServiceImpl struct {
-	log                *log.Logger
+	log                common.Logger
 	cfg                *config.AppConfig
 	messageSender      MessageSender
 	currencySvcClient  CurrencyServiceClient
@@ -17,14 +16,15 @@ type ServiceImpl struct {
 }
 
 func (s *ServiceImpl) Notify() error {
-	fromCurrency := common.Currency(s.cfg.FromCurrency)
-	toCurrency := common.Currency(s.cfg.ToCurrency)
+	fromCurrency := Currency(s.cfg.FromCurrency)
+	toCurrency := Currency(s.cfg.ToCurrency)
 
 	rate, err := s.currencySvcClient.GetRate()
 	if err != nil {
-		s.log.Printf("Failed to get rate from currency service: %s", err)
+		s.log.Errorf("Failed to get rate from currency service: %s", err)
 		return err
 	}
+	s.log.Infof("Got rate from currency service: %f", rate)
 
 	message := Message{
 		Subject: fmt.Sprintf("%s to %s rate", fromCurrency, toCurrency),
@@ -40,7 +40,7 @@ func (s *ServiceImpl) Notify() error {
 	for _, subscriber := range subscribers {
 		err := s.messageSender.Send(subscriber.Email, message.Subject, message.Text)
 		if err != nil {
-			s.log.Printf("Unable to send mails via mail service for %s: %s", subscriber, err)
+			s.log.Errorf("Unable to send mails via mail service for %s: %s", subscriber, err)
 			failedSubscribers = append(failedSubscribers, subscriber.Email)
 		}
 	}
@@ -53,7 +53,7 @@ func (s *ServiceImpl) Notify() error {
 }
 
 func NewNotificationService(
-	log *log.Logger,
+	log common.Logger,
 	cfg *config.AppConfig,
 	messageSender MessageSender,
 	currencySvcClient CurrencyServiceClient,

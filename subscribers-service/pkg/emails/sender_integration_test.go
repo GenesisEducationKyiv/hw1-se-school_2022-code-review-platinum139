@@ -1,7 +1,7 @@
 package emails
 
 import (
-	"bitcoin-service/config"
+	"subscribers-service/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ type EmailsServiceIntegrationTestSuite struct {
 
 func (s *EmailsServiceIntegrationTestSuite) TestSendEmail_Positive() {
 	// arrange
-	appConfig, err := config.NewAppConfig(".env.test")
+	appConfig, err := config.NewAppConfig(".env")
 	assert.NoError(s.T(), err)
 
 	receiverEmail := appConfig.SMTPUsername

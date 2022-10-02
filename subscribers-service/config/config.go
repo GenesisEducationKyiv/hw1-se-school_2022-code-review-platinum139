@@ -18,7 +18,11 @@ type AppConfig struct {
 	SMTPPassword     string `env:"SMTP_PASSWORD"`
 	ServerHost       string `env:"SERVER_HOST"                envDefault:"localhost"`
 	ServerPort       string `env:"SERVER_PORT"                envDefault:"80"`
-	LogLevel         int    `env:"LOG_LEVEL"                  envDefault:"5"`
+	LogLevel         string `env:"LOG_LEVEL"                  envDefault:"error"`
+	RabbitMqHost     string `env:"RABBIT_MQ_HOST"             envDefault:"localhost"`
+	RabbitMqPort     string `env:"RABBIT_MQ_PORT"             envDefault:"5672"`
+	RabbitMqUserName string `env:"RABBIT_MQ_USERNAME"         envDefault:"guest"`
+	RabbitMqPassword string `env:"RABBIT_MQ_PASSWORD"         envDefault:"guest"`
 }
 
 func NewAppConfig(envFilename string) (*AppConfig, error) {

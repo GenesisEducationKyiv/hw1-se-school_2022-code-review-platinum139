@@ -3,9 +3,9 @@ package file_storage
 import (
 	"bufio"
 	"errors"
+	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"log"
 	"os"
 	"testing"
 )
@@ -16,7 +16,7 @@ type StorageIntegrationTestSuite struct {
 
 func (s *StorageIntegrationTestSuite) TestAdd_CreateFileAndAddRecord() {
 	// arrange
-	logger := log.New(os.Stdout, "", 4)
+	logger := log.New("")
 
 	filename := "CreateFileAndAddRecordTest.data"
 	record := "test_mail@gmail.com"
@@ -46,7 +46,7 @@ func (s *StorageIntegrationTestSuite) TestAdd_CreateFileAndAddRecord() {
 
 func (s *StorageIntegrationTestSuite) TestAdd_RecordAlreadyExists() {
 	// arrange
-	logger := log.New(os.Stdout, "", 4)
+	logger := log.New("")
 
 	filename := "RecordAlreadyExistsTest.data"
 	record := "test_mail@gmail.com"
@@ -74,7 +74,7 @@ func (s *StorageIntegrationTestSuite) TestAdd_RecordAlreadyExists() {
 
 func (s *StorageIntegrationTestSuite) TestGetAll_FileNotExists() {
 	// arrange
-	logger := log.New(os.Stdout, "", 4)
+	logger := log.New("")
 
 	filename := "FileNotExistsTest.data"
 
@@ -93,7 +93,7 @@ func (s *StorageIntegrationTestSuite) TestGetAll_FileNotExists() {
 
 func (s *StorageIntegrationTestSuite) TestGetAll_GetOneRecord() {
 	// arrange
-	logger := log.New(os.Stdout, "", 4)
+	logger := log.New("")
 
 	filename := "GetOneRecordTest.data"
 	record := "test_mail@gmail.com"

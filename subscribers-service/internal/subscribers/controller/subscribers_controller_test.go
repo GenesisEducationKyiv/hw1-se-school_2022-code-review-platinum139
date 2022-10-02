@@ -3,17 +3,17 @@ package controller
 import (
 	"errors"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"subscribers-service/config"
+	"subscribers-service/internal/common"
 	"subscribers-service/internal/subscribers/domain"
 	"subscribers-service/pkg/file_storage"
 	"testing"
@@ -36,15 +36,15 @@ func (s *SubscribersServiceMock) GetSubscribers() ([]domain.Subscriber, error) {
 type SubscribersControllerTestSuite struct {
 	suite.Suite
 	config *config.AppConfig
-	logger *log.Logger
+	logger common.Logger
 }
 
 func (s *SubscribersControllerTestSuite) SetupSuite() {
-	appConfig, err := config.NewAppConfig(".env.test")
+	appConfig, err := config.NewAppConfig(".env")
 	assert.NoError(s.T(), err)
 	s.config = appConfig
 
-	s.logger = log.New(os.Stdout, "", appConfig.LogLevel)
+	s.logger = log.New("")
 }
 
 func (s *SubscribersControllerTestSuite) TestSubscribeHandler_EmailNotProvided() {

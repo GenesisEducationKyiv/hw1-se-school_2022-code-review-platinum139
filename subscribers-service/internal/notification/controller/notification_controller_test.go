@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"subscribers-service/config"
+	"subscribers-service/internal/common"
 	notificationDomain "subscribers-service/internal/notification/domain"
 	subscribersDomain "subscribers-service/internal/subscribers/domain"
 	"testing"
@@ -29,7 +29,7 @@ func (s *NotificationServiceMock) Notify() error {
 type NotificationServiceTestSuite struct {
 	suite.Suite
 	config *config.AppConfig
-	logger *log.Logger
+	logger common.Logger
 }
 
 func (s *NotificationServiceTestSuite) SetupSuite() {
@@ -37,7 +37,7 @@ func (s *NotificationServiceTestSuite) SetupSuite() {
 	assert.NoError(s.T(), err)
 	s.config = appConfig
 
-	s.logger = log.New(os.Stdout, "", appConfig.LogLevel)
+	s.logger = log.New("")
 }
 
 func (s *NotificationServiceTestSuite) TestSendEmailsHandler_InternalError() {
