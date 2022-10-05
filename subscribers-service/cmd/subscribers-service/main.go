@@ -11,6 +11,8 @@ import (
 	"syscall"
 )
 
+const logsExchangeName = "logs"
+
 func main() {
 	appConfig, err := config.NewAppConfig(".env")
 	if err != nil {
@@ -22,7 +24,8 @@ func main() {
 		Port:     appConfig.RabbitMqPort,
 		User:     appConfig.RabbitMqUserName,
 		Password: appConfig.RabbitMqPassword,
-		Exchange: "logs",
+		Timeout:  appConfig.RabbitMqTimeout,
+		Exchange: logsExchangeName,
 	})
 	if err != nil {
 		panic(err)

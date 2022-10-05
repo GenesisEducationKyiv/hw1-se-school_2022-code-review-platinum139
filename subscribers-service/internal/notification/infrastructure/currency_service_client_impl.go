@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,10 +19,10 @@ type CurrencyServiceClientImpl struct {
 
 func (c *CurrencyServiceClientImpl) GetRate() (float64, error) {
 	protocol := "http"
-	currencySvcUrl := fmt.Sprintf("%s://%s:%s/rate",
-		protocol, c.currencyServiceHost, c.currencyServicePort)
+	currencySvcURL := fmt.Sprintf("%s://%s/rate",
+		protocol, net.JoinHostPort(c.currencyServiceHost, c.currencyServicePort))
 
-	resp, err := http.Get(currencySvcUrl)
+	resp, err := http.Get(currencySvcURL)
 	if err != nil {
 		return 0, err
 	}

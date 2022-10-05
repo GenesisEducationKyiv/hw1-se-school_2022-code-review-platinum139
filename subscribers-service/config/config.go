@@ -23,6 +23,7 @@ type AppConfig struct {
 	RabbitMqPort     string `env:"RABBIT_MQ_PORT"             envDefault:"5672"`
 	RabbitMqUserName string `env:"RABBIT_MQ_USERNAME"         envDefault:"guest"`
 	RabbitMqPassword string `env:"RABBIT_MQ_PASSWORD"         envDefault:"guest"`
+	RabbitMqTimeout  int    `env:"RABBIT_MQ_TIMEOUT"          envDefault:"5"`
 }
 
 func NewAppConfig(envFilename string) (*AppConfig, error) {

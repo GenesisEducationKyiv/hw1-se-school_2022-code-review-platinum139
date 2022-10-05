@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+const logsExchangeName = "logs"
+
 func main() {
 	appConfig, err := config.NewAppConfig(".env")
 	if err != nil {
@@ -18,12 +20,17 @@ func main() {
 		Port:     appConfig.RabbitMqPort,
 		User:     appConfig.RabbitMqUserName,
 		Password: appConfig.RabbitMqPassword,
-		Exchange: "logs",
+		Timeout:  appConfig.RabbitMqTimeout,
+		Exchange: logsExchangeName,
 	})
 	if err != nil {
 		panic(err)
 	}
-	defer rabbitMqClient.CloseConnection()
+	defer func() {
+		if err := rabbitMqClient.CloseConnection(); err != nil {
+			panic(err)
+		}
+	}()
 
 	err = rabbitMqClient.CreateQueue(appConfig.LogLevel)
 	if err != nil {
@@ -35,22 +42,22 @@ func main() {
 		panic(err)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(1)
 
 	go func() {
-		defer wg.Done()
+		defer waitGroup.Done()
 		for log := range logs {
-			c := color.New(color.FgYellow)
-			c.Printf("%s", log.Timestamp)
+			printColor := color.New(color.FgYellow)
+			printColor.Printf("%s", log.Timestamp)
 
-			c = color.New(color.FgCyan)
-			c.Printf(" [%s] ", appConfig.LogLevel)
+			printColor = color.New(color.FgCyan)
+			printColor.Printf(" [%s] ", appConfig.LogLevel)
 
-			c = color.New(color.FgWhite)
-			c.Printf("%s\n", string(log.Body))
+			printColor = color.New(color.FgWhite)
+			printColor.Printf("%s\n", string(log.Body))
 		}
 	}()
 
-	wg.Wait()
+	waitGroup.Wait()
 }

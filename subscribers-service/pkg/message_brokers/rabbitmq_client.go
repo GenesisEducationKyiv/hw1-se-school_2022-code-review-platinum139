@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"net"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type RabbitMqConfig struct {
 	Port     string
 	User     string
 	Password string
+	Timeout  int
 	Exchange string
 }
 
@@ -36,11 +38,11 @@ func (c *RabbitMqClient) CreateQueue(name string) error {
 	}
 
 	err = c.channel.QueueBind(
-		queue.Name, // queue name
-		queue.Name, // routing key
-		"logs",     // exchange
-		false,      // noWait
-		nil,        // args
+		queue.Name,        // queue name
+		queue.Name,        // routing key
+		c.config.Exchange, // exchange
+		false,             // noWait
+		nil,               // args
 	)
 	if err != nil {
 		return err
@@ -51,7 +53,9 @@ func (c *RabbitMqClient) CreateQueue(name string) error {
 }
 
 func (c *RabbitMqClient) SendToQueue(queueName string, messageBody string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(c.config.Timeout)*time.Second)
 	defer cancel()
 
 	message := amqp.Publishing{
@@ -96,8 +100,8 @@ func (c *RabbitMqClient) CloseConnection() error {
 }
 
 func NewRabbitMqClient(config RabbitMqConfig) (*RabbitMqClient, error) {
-	connStr := fmt.Sprintf("amqp://%s:%s@%s:%s/",
-		config.User, config.Password, config.Host, config.Port)
+	connStr := fmt.Sprintf("amqp://%s:%s@%s/",
+		config.User, config.Password, net.JoinHostPort(config.Host, config.Port))
 
 	conn, err := amqp.Dial(connStr)
 	if err != nil {
@@ -112,8 +116,8 @@ func NewRabbitMqClient(config RabbitMqConfig) (*RabbitMqClient, error) {
 	err = channel.ExchangeDeclare(
 		config.Exchange, // name
 		"direct",        // kind
-		true,            //durable
-		false,           //autoDelete
+		true,            // durable
+		false,           // autoDelete
 		false,           // internal
 		false,           // noWait
 		nil,             // args

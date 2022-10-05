@@ -21,7 +21,7 @@ func (log *LoggerImpl) Debugf(format string, args ...interface{}) {
 		fmt.Println("Failed to create debug queue")
 	}
 
-	message := fmt.Sprintf(format, args)
+	message := fmt.Sprintf(format, args...)
 	err = log.rabbitMqClient.SendToQueue(debugLogQueue, message)
 	if err != nil {
 		fmt.Println("Failed to write debug log")
@@ -34,7 +34,7 @@ func (log *LoggerImpl) Infof(format string, args ...interface{}) {
 		fmt.Println("Failed to create info queue")
 	}
 
-	message := fmt.Sprintf(format, args)
+	message := fmt.Sprintf(format, args...)
 	err = log.rabbitMqClient.SendToQueue(infoLogQueue, message)
 	if err != nil {
 		fmt.Println("Failed to write info log")
@@ -47,7 +47,7 @@ func (log *LoggerImpl) Errorf(format string, args ...interface{}) {
 		fmt.Println("Failed to create error queue")
 	}
 
-	message := fmt.Sprintf(format, args)
+	message := fmt.Sprintf(format, args...)
 	err = log.rabbitMqClient.SendToQueue(errorLogQueue, message)
 	if err != nil {
 		fmt.Println("Failed to write error log")

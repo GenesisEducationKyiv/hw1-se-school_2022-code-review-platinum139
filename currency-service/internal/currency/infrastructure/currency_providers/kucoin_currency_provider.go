@@ -2,8 +2,8 @@ package currency_providers
 
 import (
 	"currency-service/internal/currency/domain"
+	"currency-service/internal/currency/infrastructure/currency_provider_errors"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,7 +61,7 @@ func (p *KucoinCurrencyProvider) getCurrencyRate(from domain.Currency, to domain
 	key := strings.ToUpper(string(from))
 	rateStr, ok := responseBody.Data[key]
 	if !ok {
-		return 0, errors.New("rate not found")
+		return 0, currency_provider_errors.RateNotFoundError{}
 	}
 
 	rate, err := strconv.ParseFloat(rateStr, p.rateValueBitSize)

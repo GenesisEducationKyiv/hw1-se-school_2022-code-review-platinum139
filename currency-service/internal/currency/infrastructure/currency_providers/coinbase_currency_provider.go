@@ -2,8 +2,8 @@ package currency_providers
 
 import (
 	"currency-service/internal/currency/domain"
+	"currency-service/internal/currency/infrastructure/currency_provider_errors"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,16 +24,22 @@ func (p *CoinbaseCurrencyProvider) SetNext(next domain.Provider) {
 	p.next = next
 }
 
-func (p *CoinbaseCurrencyProvider) GetCurrencyRate(from domain.Currency, to domain.Currency) (float64, error) {
-	rate, err := p.getCurrencyRate(from, to)
+func (p *CoinbaseCurrencyProvider) GetCurrencyRate(
+	fromCurrency domain.Currency,
+	toCurrency domain.Currency,
+) (float64, error) {
+	rate, err := p.getCurrencyRate(fromCurrency, toCurrency)
 	if err != nil && p.next != nil {
-		return (p.next).GetCurrencyRate(from, to)
+		return (p.next).GetCurrencyRate(fromCurrency, toCurrency)
 	}
 	return rate, err
 }
 
-func (p *CoinbaseCurrencyProvider) getCurrencyRate(from domain.Currency, to domain.Currency) (float64, error) {
-	currencyQueryParam := fmt.Sprintf("currency=%s", from)
+func (p *CoinbaseCurrencyProvider) getCurrencyRate(
+	fromCurrency domain.Currency,
+	toCurrency domain.Currency,
+) (float64, error) {
+	currencyQueryParam := fmt.Sprintf("currency=%s", fromCurrency)
 	url := fmt.Sprintf("%s/%s?%s", coinbaseBaseURL, coinbaseRateRoute, currencyQueryParam)
 
 	resp, err := http.Get(url)
@@ -58,9 +64,9 @@ func (p *CoinbaseCurrencyProvider) getCurrencyRate(from domain.Currency, to doma
 		return 0, err
 	}
 
-	rateStr, ok := responseBody.Data.Rates[string(to)]
+	rateStr, ok := responseBody.Data.Rates[string(toCurrency)]
 	if !ok {
-		return 0, errors.New("rate not found")
+		return 0, currency_provider_errors.RateNotFoundError{}
 	}
 
 	rate, err := strconv.ParseFloat(rateStr, p.rateValueBitSize)

@@ -22,8 +22,8 @@ func (p *CachedCurrencyProvider) SetNext(next Provider) {
 	p.provider.SetNext(next)
 }
 
-func (p *CachedCurrencyProvider) GetCurrencyRate(from Currency, to Currency) (float64, error) {
-	key := fmt.Sprintf("%s:%s", from, to)
+func (p *CachedCurrencyProvider) GetCurrencyRate(fromCurrency Currency, toCurrency Currency) (float64, error) {
+	key := fmt.Sprintf("%s:%s", fromCurrency, toCurrency)
 
 	cachedValue, ok := p.cache[key]
 	if ok && cachedValue.ExpiresAt.After(time.Now()) {
@@ -34,7 +34,7 @@ func (p *CachedCurrencyProvider) GetCurrencyRate(from Currency, to Currency) (fl
 		return rate, nil
 	}
 
-	rate, err := p.provider.GetCurrencyRate(from, to)
+	rate, err := p.provider.GetCurrencyRate(fromCurrency, toCurrency)
 	if err != nil {
 		return 0, err
 	}
