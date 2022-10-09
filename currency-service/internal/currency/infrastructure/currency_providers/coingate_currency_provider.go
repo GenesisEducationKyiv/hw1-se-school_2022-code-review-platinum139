@@ -22,16 +22,22 @@ func (p *CoingateCurrencyProvider) SetNext(next domain.Provider) {
 	p.next = next
 }
 
-func (p *CoingateCurrencyProvider) GetCurrencyRate(from domain.Currency, to domain.Currency) (float64, error) {
-	rate, err := p.getCurrencyRate(from, to)
+func (p *CoingateCurrencyProvider) GetCurrencyRate(
+	fromCurrency domain.Currency,
+	toCurrency domain.Currency,
+) (float64, error) {
+	rate, err := p.getCurrencyRate(fromCurrency, toCurrency)
 	if err != nil && p.next != nil {
-		return (p.next).GetCurrencyRate(from, to)
+		return (p.next).GetCurrencyRate(fromCurrency, toCurrency)
 	}
 	return rate, err
 }
 
-func (s *CoingateCurrencyProvider) getCurrencyRate(from domain.Currency, to domain.Currency) (float64, error) {
-	url := fmt.Sprintf("%s/%s/%s/%s", coingateBaseURL, coingateRateRoute, from, to)
+func (p *CoingateCurrencyProvider) getCurrencyRate(
+	fromCurrency domain.Currency,
+	toCurrency domain.Currency,
+) (float64, error) {
+	url := fmt.Sprintf("%s/%s/%s/%s", coingateBaseURL, coingateRateRoute, fromCurrency, toCurrency)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -46,7 +52,7 @@ func (s *CoingateCurrencyProvider) getCurrencyRate(from domain.Currency, to doma
 
 	bodyString := string(bodyBytes)
 
-	rate, err := strconv.ParseFloat(bodyString, s.rateValueBitSize)
+	rate, err := strconv.ParseFloat(bodyString, p.rateValueBitSize)
 	if err != nil {
 		return 0, err
 	}

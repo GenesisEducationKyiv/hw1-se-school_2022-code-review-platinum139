@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  currency-service:
+    build: ./currency-service
+    container_name: currency-svc
+    image: currency-service
+    restart: always
+    ports:
+      - "8001:8001"
+    networks:
+      - bitcoin_service_net
+
+  subscribers-service:
+    build: ./subscribers-service
+    container_name: subscribers-svc
+    image: subscribers-service
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      rabbit-mq:
+        condition: service_healthy
+    networks:
+     - bitcoin_service_net
+
+  logs-printer:
+    build: ./logs-printer
+    container_name: logs-printer
+    image: logs-printer
+    restart: always
+    tty: true
+    depends_on:
+      rabbit-mq:
+        condition: service_healthy
+    networks:
+      - bitcoin_service_net
+
+  rabbit-mq:
+    image: "rabbitmq:3-management"
+    container_name: "rabbit-mq"
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+    volumes:
+        - rabbit_mq:/var/lib/rabbitmq/mnesia/
+    networks:
+      - bitcoin_service_net
+
+volumes:
+  rabbit_mq:
+
+networks:
+  bitcoin_service_net:
+    driver: bridge

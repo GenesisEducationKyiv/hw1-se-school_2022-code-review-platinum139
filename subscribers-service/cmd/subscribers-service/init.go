@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
-	"log"
-	"os"
-	"os/signal"
 	"subscribers-service/config"
 	"subscribers-service/internal/api"
+	"subscribers-service/internal/common"
 	notificationCtrl "subscribers-service/internal/notification/controller"
 	notification "subscribers-service/internal/notification/domain"
 	notificationInf "subscribers-service/internal/notification/infrastructure"
@@ -15,55 +12,24 @@ import (
 	subscribersInf "subscribers-service/internal/subscribers/infrastructure"
 	"subscribers-service/pkg/emails"
 	"subscribers-service/pkg/file_storage"
-	"sync"
-	"syscall"
 )
 
-func Run() {
-	appConfig, err := config.NewAppConfig(".env")
-	if err != nil {
-		panic(err)
-	}
-
-	logger := log.New(os.Stdout, "", appConfig.LogLevel)
-
-	fileStorage := file_storage.NewFileStorage(logger, appConfig.StorageFilename)
+func initServer(config *config.AppConfig, logger common.Logger) *api.Server {
+	fileStorage := file_storage.NewFileStorage(logger, config.StorageFilename)
 	subscribersRepo := subscribersInf.NewSubscribersFileRepo(*fileStorage)
 	subscribersService := subscribers.NewSubscribersService(logger, subscribersRepo)
-	subscribersController := subscribersCtrl.NewSubscribersController(logger, appConfig, subscribersService)
+	subscribersController := subscribersCtrl.NewSubscribersController(logger, config, subscribersService)
 
 	currencySvcClient := notificationInf.NewCurrencyServiceClientImpl(
-		logger, appConfig.CurrencySvcHost, appConfig.CurrencySvcPort, appConfig.RateValueBitSize)
+		logger, config.CurrencySvcHost, config.CurrencySvcPort, config.RateValueBitSize)
 
-	mailService := emails.NewEmailService(appConfig)
+	mailService := emails.NewEmailService(config)
 	notificationService := notification.NewNotificationService(
-		logger, appConfig, mailService, currencySvcClient, subscribersService)
+		logger, config, mailService, currencySvcClient, subscribersService)
 	notificationController := notificationCtrl.NewNotificationController(logger, notificationService)
 
-	server := api.NewServer(logger, appConfig, notificationController, subscribersController)
+	server := api.NewServer(logger, config, notificationController, subscribersController)
 	server.RegisterRoutes()
 
-	var waitGroup sync.WaitGroup
-
-	waitGroup.Add(1)
-	go func() {
-		defer waitGroup.Done()
-		server.Run()
-	}()
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-	waitGroup.Add(1)
-	go func() {
-		<-signals
-		defer waitGroup.Done()
-
-		if err := server.Shutdown(context.Background()); err != nil {
-			log.Fatalf("Server stopped with error: %s", err)
-		}
-		log.Println("Server stopped gracefully")
-	}()
-
-	waitGroup.Wait()
+	return server
 }

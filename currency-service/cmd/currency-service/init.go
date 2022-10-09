@@ -79,7 +79,6 @@ func initCurrencyProvider(
 	config *config.AppConfig,
 	factory *currency_provider_creators.CurrencyProvidersFactory,
 ) (domain.Provider, error) {
-
 	providerType := domain.CurrencyProviderType(config.CurrencyProvider)
 	provider, err := factory.CreateProvider(providerType)
 	if err != nil {

@@ -1,4 +1,4 @@
-package common
+package domain
 
 type Currency string
 

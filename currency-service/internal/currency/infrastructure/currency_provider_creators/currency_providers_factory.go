@@ -1,12 +1,9 @@
 package currency_provider_creators
 
-import currency "currency-service/internal/currency/domain"
-
-type ProviderNotRegisteredErr struct{}
-
-func (e ProviderNotRegisteredErr) Error() string {
-	return "provider is not registered"
-}
+import (
+	currency "currency-service/internal/currency/domain"
+	"currency-service/internal/currency/infrastructure/currency_provider_errors"
+)
 
 type CurrencyProvidersFactory struct {
 	providers map[currency.CurrencyProviderType]currency.CurrencyProviderCreator
@@ -30,10 +27,9 @@ func (f *CurrencyProvidersFactory) GetRegistered() []currency.CurrencyProviderTy
 func (f *CurrencyProvidersFactory) CreateProvider(
 	providerType currency.CurrencyProviderType,
 ) (currency.Provider, error) {
-
 	providerCreator, registered := f.providers[providerType]
 	if !registered {
-		return nil, ProviderNotRegisteredErr{}
+		return nil, currency_provider_errors.ProviderNotRegisteredError{}
 	}
 
 	return providerCreator.CreateProvider(), nil

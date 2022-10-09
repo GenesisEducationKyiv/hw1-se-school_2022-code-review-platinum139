@@ -2,14 +2,14 @@ package file_storage
 
 import (
 	"bufio"
-	"log"
 	"os"
+	"subscribers-service/internal/common"
 )
 
 const filePermissions = 0600
 
 type FileStorage struct {
-	logger   *log.Logger
+	logger   common.Logger
 	filename string
 }
 
@@ -20,7 +20,7 @@ func (s *FileStorage) Add(record string) error {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Fatalf("Unable to close storage file: %s\n", err)
+			s.logger.Errorf("Unable to close storage file:", err)
 		}
 	}()
 
@@ -40,13 +40,13 @@ func (s *FileStorage) Add(record string) error {
 }
 
 func (s *FileStorage) GetAll() ([]string, error) {
-	file, err := os.OpenFile(s.filename, os.O_RDWR, filePermissions)
+	file, err := os.OpenFile(s.filename, os.O_CREATE|os.O_RDWR, filePermissions)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Fatalf("Unable to close storage file: %s\n", err)
+			s.logger.Errorf("Unable to close storage file: ", err)
 		}
 	}()
 
@@ -60,7 +60,7 @@ func (s *FileStorage) GetAll() ([]string, error) {
 	return records, nil
 }
 
-func NewFileStorage(logger *log.Logger, filename string) *FileStorage {
+func NewFileStorage(logger common.Logger, filename string) *FileStorage {
 	return &FileStorage{
 		logger:   logger,
 		filename: filename,

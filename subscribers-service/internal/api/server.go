@@ -5,15 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"log"
 	"net/http"
 	"subscribers-service/config"
+	"subscribers-service/internal/common"
 	notification "subscribers-service/internal/notification/controller"
 	subscribers "subscribers-service/internal/subscribers/controller"
 )
 
 type Server struct {
-	logger                 *log.Logger
+	logger                 common.Logger
 	config                 *config.AppConfig
 	notificationController *notification.Controller
 	subscribersController  *subscribers.Controller
@@ -28,8 +28,9 @@ func (s Server) RegisterRoutes() {
 func (s Server) Run() {
 	addr := fmt.Sprintf("%s:%s", s.config.ServerHost, s.config.ServerPort)
 	if err := s.echoServer.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		s.logger.Print("Server stopped with error:", err)
+		s.logger.Errorf("Server stopped with error:", err)
 	}
+	s.logger.Infof("Server started on port %s", s.config.ServerPort)
 }
 
 func (s Server) Shutdown(ctx context.Context) error {
@@ -37,7 +38,7 @@ func (s Server) Shutdown(ctx context.Context) error {
 }
 
 func NewServer(
-	logger *log.Logger,
+	logger common.Logger,
 	cfg *config.AppConfig,
 	notificationController *notification.Controller,
 	subscribersController *subscribers.Controller,

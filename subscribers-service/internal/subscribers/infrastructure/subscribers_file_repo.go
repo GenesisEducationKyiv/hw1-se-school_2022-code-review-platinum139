@@ -19,11 +19,11 @@ func (repo *SubscribersFileRepo) GetSubscribers() ([]domain.Subscriber, error) {
 		return nil, err
 	}
 
-	var resultSubscribers []domain.Subscriber
-	for _, email := range emails {
-		resultSubscribers = append(resultSubscribers, domain.Subscriber{
+	resultSubscribers := make([]domain.Subscriber, len(emails))
+	for i, email := range emails {
+		resultSubscribers[i] = domain.Subscriber{
 			Email: email,
-		})
+		}
 	}
 
 	return resultSubscribers, nil
