@@ -11,18 +11,32 @@ services:
     networks:
       - bitcoin_service_net
 
+  customers-service:
+    build: ./customers-service
+    container_name: customers-svc
+    image: customers-service
+    restart: always
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bitcoin_service_net
+
   subscribers-service:
     build: ./subscribers-service
     container_name: subscribers-svc
     image: subscribers-service
     restart: always
+    tty: true
     ports:
       - "8080:8080"
     depends_on:
       rabbit-mq:
         condition: service_healthy
     networks:
-     - bitcoin_service_net
+      - bitcoin_service_net
 
   logs-printer:
     build: ./logs-printer
@@ -33,6 +47,43 @@ services:
     depends_on:
       rabbit-mq:
         condition: service_healthy
+    networks:
+      - bitcoin_service_net
+
+  postgres:
+    image: postgres:14.1-alpine
+    container_name: customers-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=customers-db
+    ports:
+      - '5434:5432'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 2s
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - bitcoin_service_net
+
+  migrations:
+    image: migrate/migrate
+    container_name: customers-migrations
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./customers-service/migrations:/migrations
+    command: [ "-path", "/migrations", "-database",
+               "postgresql://postgres:postgres@postgres:5432/customers-db?sslmode=disable", "up", "2" ]
+    links:
+      - postgres
     networks:
       - bitcoin_service_net
 
@@ -48,17 +99,29 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
     healthcheck:
       test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 3s
+      interval: 2s
+      timeout: 2s
       retries: 5
       start_period: 2s
     volumes:
-        - rabbit_mq:/var/lib/rabbitmq/mnesia/
+      - rabbit_mq:/var/lib/rabbitmq/mnesia/
+    networks:
+      - bitcoin_service_net
+
+  dtm:
+    image: yedf/dtm
+    container_name: dtm-svc
+    restart: always
+    ports:
+      - "36790:36790" # grpc
+      - "36789:36789" # ui
     networks:
       - bitcoin_service_net
 
 volumes:
   rabbit_mq:
+  postgres:
+    driver: local
 
 networks:
   bitcoin_service_net:

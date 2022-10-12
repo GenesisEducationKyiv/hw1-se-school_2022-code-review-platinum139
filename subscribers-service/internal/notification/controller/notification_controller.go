@@ -2,7 +2,7 @@ package controller
 
 import (
 	"errors"
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"subscribers-service/internal/common"
 	"subscribers-service/internal/notification/domain"
@@ -13,7 +13,7 @@ type Controller struct {
 	notificationService domain.NotificationService
 }
 
-func (c Controller) SendEmailsHandler(context echo.Context) error {
+func (c Controller) SendEmailsHandler(context *gin.Context) {
 	c.logger.Debugf("SendEmailHandler started")
 
 	err := c.notificationService.Notify()
@@ -21,16 +21,18 @@ func (c Controller) SendEmailsHandler(context echo.Context) error {
 		var sendMailErr domain.SendMessageError
 		if errors.As(err, &sendMailErr) {
 			c.logger.Errorf("Unable to send emails: ", sendMailErr)
-			return context.JSON(http.StatusOK, map[string][]string{
+			context.JSON(http.StatusOK, map[string][]string{
 				"failedEmails": sendMailErr.FailedSubscribers,
 			})
+			return
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, map[string]string{
+		context.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "internal error",
 		})
+		return
 	}
 
-	return context.JSON(http.StatusOK, "")
+	context.Status(http.StatusOK)
 }
 
 func NewNotificationController(

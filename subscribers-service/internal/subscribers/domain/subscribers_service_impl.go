@@ -28,6 +28,16 @@ func (s SubscribersServiceImpl) GetSubscribers() ([]Subscriber, error) {
 	return subscribers, nil
 }
 
+func (s SubscribersServiceImpl) Unsubscribe(subscriber Subscriber) error {
+	err := s.subscribersRepo.DeleteSubscriber(subscriber)
+	if err != nil {
+		s.log.Errorf("Unable to delete subscriber: %s", subscriber.Email)
+		return err
+	}
+	s.log.Infof("Subscriber %s is deleted", subscriber.Email)
+	return nil
+}
+
 func NewSubscribersService(logger common.Logger, subscribersRepo Repo) *SubscribersServiceImpl {
 	return &SubscribersServiceImpl{
 		log:             logger,

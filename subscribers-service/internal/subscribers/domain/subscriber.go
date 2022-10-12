@@ -1,5 +1,6 @@
 package domain
 
 type Subscriber struct {
-	Email string
+	TransactionID string
+	Email         string
 }
