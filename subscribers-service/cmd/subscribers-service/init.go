@@ -29,7 +29,6 @@ func initServer(config *config.AppConfig, logger common.Logger) *api.Server {
 	notificationController := notificationCtrl.NewNotificationController(logger, notificationService)
 
 	server := api.NewServer(logger, config, notificationController, subscribersController)
-	server.RegisterRoutes()
 
 	return server
 }

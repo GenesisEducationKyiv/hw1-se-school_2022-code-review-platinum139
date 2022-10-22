@@ -10,23 +10,28 @@ type SubscribersFileRepo struct {
 }
 
 func (repo *SubscribersFileRepo) CreateSubscriber(subscriber domain.Subscriber) error {
-	return repo.storage.Add(subscriber.Email)
+	return repo.storage.Add(subscriber.TransactionID, subscriber.Email)
 }
 
 func (repo *SubscribersFileRepo) GetSubscribers() ([]domain.Subscriber, error) {
-	emails, err := repo.storage.GetAll()
+	records, err := repo.storage.GetAll()
 	if err != nil {
 		return nil, err
 	}
 
-	resultSubscribers := make([]domain.Subscriber, len(emails))
-	for i, email := range emails {
+	resultSubscribers := make([]domain.Subscriber, len(records))
+	for i, elems := range records {
 		resultSubscribers[i] = domain.Subscriber{
-			Email: email,
+			TransactionID: elems[0],
+			Email:         elems[1],
 		}
 	}
 
 	return resultSubscribers, nil
+}
+
+func (repo *SubscribersFileRepo) DeleteSubscriber(subscriber domain.Subscriber) error {
+	return repo.storage.Delete(subscriber.TransactionID)
 }
 
 func NewSubscribersFileRepo(storage file_storage.FileStorage) *SubscribersFileRepo {
